@@ -1,16 +1,29 @@
-# gpu-tpu-roi v0.6 – GPU vs TPU ROI Web (FastAPI + React SPA)
+# gpu-tpu-roi v0.8 – GPU vs TPU ROI Web (FastAPI + React SPA)
 
-This repo provides a **scenario-driven, ROI-based comparison** between **NVIDIA GPUs** and **Google TPUs**.
+This version adds a **quantitative ROI mode** on top of the simple 0–5 sliders.
 
-It includes:
+It now includes:
 
-- A **FastAPI backend** with a GPU vs TPU ROI API at `/api/roi`.
+- A **FastAPI backend** with a GPU vs TPU ROI API at `/api/roi` supporting:
+  - `mode=simple` – slider-based ROI (flex, eco, training, cost, latency, ops).
+  - `mode=quant` – **quantitative ROI** using measured latency, cost per unit, energy per unit, and workload/deployment fit.
 - A **clean, bright React single-page UI** at `/` with:
   - Scenario presets (edge / mixed workloads / PyTorch / TPU Pods / GCP, etc.).
-  - Sliders for 6 ROI factors (flex, eco, training, cost, latency, ops).
-  - An interactive bar-style chart for factor strengths.
-  - A **GPU vs TPU recommendation badge** at the top, based on the selected scenario + ROI score.
-- Lightweight Markdown docs at `/docs` rendered as simple HTML (optional).
+  - Sliders for the original 6 qualitative factors.
+  - A toggle for **Simple vs Quantitative mode**.
+  - Numeric inputs for:
+    - Measured latency (p99, ms)
+    - Cost per unit of work
+    - Energy per unit of work
+    - Workload fit (0–5)
+    - Deployment fit (0–5)
+  - A **GPU vs TPU recommendation badge** at the top, based on scenario + ROI.
+- Lightweight Markdown docs at `/docs` rendered as simple HTML:
+  - `/docs/roi` – qualitative ROI model (sliders)
+  - `/docs/quantitative_roi` – **quantitative formulas and examples**
+  - `/docs/decision` – decision tree
+  - `/docs/business` – business summary
+  - `/docs/justification` – technical justification of factor scores.
 
 ## One-command style run
 
@@ -24,27 +37,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 Then open:
 
 - Main UI: http://localhost:8000/
-- ROI API: http://localhost:8000/api/roi?flex=5&eco=5&training=4&cost=4&latency=5&ops=5
+- ROI API (simple): http://localhost:8000/api/roi?flex=5&eco=5&training=4&cost=4&latency=5&ops=5
+- ROI API (quant): http://localhost:8000/api/roi?mode=quant&workload_fit=4&deployment_fit=4&p99_latency_ms=18&target_latency_ms=50&cost_per_unit=0.000000002&best_cost_per_unit=0.0000000015&energy_per_unit=0.000000002&best_energy_per_unit=0.0000000015
 - Docs index: http://localhost:8000/docs
-
-## Routes
-
-- `/` – React SPA (scenarios + sliders + recommendation badge + ROI chart)
-- `/api/roi` – JSON ROI calculator (0–5)
-- `/docs` – Docs index (with links to ROI, decision, business pages)
-- `/docs/roi` – ROI model details
-- `/docs/decision` – Decision tree summary
-- `/docs/business` – Business framing
-
-## Recommendation badge
-
-The SPA computes a **recommendation badge** using:
-
-- The selected **scenario type** (GPU-leaning vs TPU-leaning).
-- The resulting **ROI score** from `/api/roi`.
-
-For example:
-
-- Edge / factory / mixed workloads with high ROI → **"Recommended: GPU"**.
-- GCP-native, high-utilization TPU Pods with strong ROI → **"Recommended: TPU"**.
-- Low ROI or no scenario selected → a neutral message asking to refine inputs.
+- Quantitative ROI docs: http://localhost:8000/docs/quantitative_roi
+- Technical justification: http://localhost:8000/docs/justification
