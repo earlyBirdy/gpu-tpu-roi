@@ -1,51 +1,23 @@
 from fastapi import FastAPI, Query
-from fastapi.responses import HTMLResponse, JSONResponse
-import markdown, os
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+import os
 
 app = FastAPI(title="GPU vs TPU ROI Web")
 
-DOCS_DIR = os.path.join(os.path.dirname(__file__), "..", "docs")
+BASE_DIR = os.path.dirname(__file__)
+STATIC_DIR = os.path.join(BASE_DIR, "static")
 
-BASE_TEMPLATE = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>GPU vs TPU ROI</title>
-  <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-  <main>
-  {content}
-  </main>
-</body>
-</html>
-"""
+# Serve static assets (React UI lives in static/index.html)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-def render_page(name: str):
-    path = os.path.join(DOCS_DIR, name + ".md")
-    if not os.path.exists(path):
-        return HTMLResponse("<h1>Page Not Found</h1>", status_code=404)
-    with open(path, encoding="utf-8") as f:
-        html = markdown.markdown(f.read(), extensions=["tables"])
-    return HTMLResponse(BASE_TEMPLATE.format(content=html))
 
-@app.get("/", response_class=HTMLResponse)
-def index():
-    return render_page("index")
+@app.get("/", response_class=FileResponse)
+def root():
+    """Serve the React single-page UI."""
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    return FileResponse(index_path, media_type="text/html")
 
-@app.get("/roi", response_class=HTMLResponse)
-def roi():
-    return render_page("roi_tables")
-
-@app.get("/decision", response_class=HTMLResponse)
-def decision():
-    return render_page("decision_tree")
-
-@app.get("/business", response_class=HTMLResponse)
-def business():
-    return render_page("business_summary")
-
-# ---- Interactive ROI Calculator API ----
 
 @app.get("/api/roi", response_class=JSONResponse)
 def roi_calc(
@@ -56,6 +28,10 @@ def roi_calc(
     latency: float = Query(5, ge=0, le=5, description="Inference latency"),
     ops: float = Query(5, ge=0, le=5, description="Operability / integration"),
 ):
+    """Weighted ROI scoring for accelerator choice.
+
+    All factors are rated 0–5 and combined into a single score 0–5 using fixed weights.
+    """
     weights = {
         "flex": 0.20,
         "eco": 0.20,
@@ -83,5 +59,6 @@ def roi_calc(
             "latency": latency,
             "ops": ops,
         },
+        "weights": weights,
         "roi_score": round(score, 3),
     }
