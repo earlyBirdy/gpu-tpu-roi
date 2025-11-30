@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>GPU vs TPU ROI – Interactive UI</title>
+  <title>GPU vs TPU ROI – Scenarios</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- React + ReactDOM + Babel from CDN -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
@@ -13,36 +13,80 @@
       margin: 0;
       padding: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #020617;
-      color: #e5e7eb;
+      background: #f3f4f6;
+      color: #111827;
     }
     .app-root {
-      max-width: 1100px;
+      max-width: 1024px;
       margin: 2rem auto;
-      padding: 1.5rem;
+      padding: 1.75rem 1.75rem 2rem;
       border-radius: 1.25rem;
-      background: radial-gradient(circle at top left, #1d4ed8, #020617 50%);
-      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+      background: #ffffff;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+      border: 1px solid #e5e7eb;
     }
     h1 {
-      margin-top: 0;
-      font-size: 1.8rem;
+      margin: 0 0 0.35rem 0;
+      font-size: 1.9rem;
     }
     .subtitle {
       opacity: 0.8;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
+      max-width: 40rem;
+      font-size: 0.95rem;
     }
-    .grid {
+    .layout {
       display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.3fr);
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.3fr);
       gap: 1.5rem;
+      margin-top: 1rem;
     }
     .card {
-      background: rgba(15,23,42,0.9);
-      border-radius: 1rem;
-      padding: 1rem 1.25rem;
-      border: 1px solid rgba(148,163,184,0.25);
-      backdrop-filter: blur(10px);
+      background: #ffffff;
+      border-radius: 0.9rem;
+      padding: 1rem 1.1rem;
+      border: 1px solid #e5e7eb;
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 0.9rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+    .scenario-select {
+      width: 100%;
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.6rem;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      color: #111827;
+      font-size: 0.85rem;
+    }
+    .scenario-tags {
+      margin-top: 0.6rem;
+      font-size: 0.78rem;
+      opacity: 0.9;
+    }
+    .scenario-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      margin-right: 0.35rem;
+      margin-bottom: 0.2rem;
+    }
+    .gpu-pill {
+      background: #ecfdf3;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .tpu-pill {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
     }
     .slider-row {
       margin-bottom: 0.85rem;
@@ -51,18 +95,18 @@
       display: flex;
       justify-content: space-between;
       font-size: 0.85rem;
-      margin-bottom: 0.15rem;
+      margin-bottom: 0.18rem;
     }
     input[type=range] {
       width: 100%;
     }
     .score-big {
-      font-size: 2.4rem;
+      font-size: 2.6rem;
       font-weight: 600;
     }
     .score-label {
       font-size: 0.85rem;
-      opacity: 0.8;
+      opacity: 0.82;
     }
     .pill {
       display: inline-flex;
@@ -71,61 +115,61 @@
       padding: 0.25rem 0.6rem;
       border-radius: 999px;
       font-size: 0.75rem;
-      background: rgba(56,189,248,0.1);
-      color: #7dd3fc;
+      background: #eff6ff;
+      color: #1d4ed8;
     }
     .pill.red {
-      background: rgba(248,113,113,0.12);
-      color: #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
     }
     .bars {
-      margin-top: 0.5rem;
+      margin-top: 0.7rem;
     }
     .bar-row {
       display: flex;
       align-items: center;
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.4rem;
       font-size: 0.8rem;
     }
     .bar-label {
-      width: 160px;
-      opacity: 0.85;
+      width: 155px;
+      opacity: 0.9;
     }
     .bar-track {
       flex: 1;
       height: 10px;
       border-radius: 999px;
-      background: rgba(148,163,184,0.2);
+      background: #e5e7eb;
       overflow: hidden;
     }
     .bar-fill {
       height: 100%;
       border-radius: 999px;
-      background: linear-gradient(90deg, #38bdf8, #22c55e);
-      transition: width 0.25s ease-out;
+      background: linear-gradient(90deg, #3b82f6, #22c55e);
+      transition: width 0.22s ease-out;
     }
     .bar-value {
       width: 34px;
       text-align: right;
       font-variant-numeric: tabular-nums;
       margin-left: 0.4rem;
-      opacity: 0.85;
+      opacity: 0.9;
     }
     .api-debug {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 0.75rem;
-      margin-top: 0.75rem;
-      background: rgba(15,23,42,0.9);
+      margin-top: 0.9rem;
+      background: #f9fafb;
       padding: 0.6rem;
       border-radius: 0.5rem;
       max-height: 180px;
       overflow: auto;
-      border: 1px solid rgba(148,163,184,0.2);
+      border: 1px solid #e5e7eb;
     }
-    .top-actions {
+    .top-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       gap: 1rem;
       margin-bottom: 1rem;
       flex-wrap: wrap;
@@ -134,31 +178,43 @@
       font-size: 0.8rem;
       padding: 0.35rem 0.7rem;
       border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.4);
-      color: #e5e7eb;
+      border: 1px solid #e5e7eb;
+      color: #111827;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
-      background: rgba(15,23,42,0.7);
+      background: #f9fafb;
     }
     .link-btn span {
       font-size: 1rem;
     }
-    .explain {
-      margin-top: 1rem;
-      font-size: 0.8rem;
-      opacity: 0.9;
+    .rec-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      border: 1px solid transparent;
     }
-    .explain h3 {
-      font-size: 0.9rem;
-      margin-bottom: 0.25rem;
+    .rec-gpu {
+      background: #ecfdf3;
+      color: #166534;
+      border-color: #bbf7d0;
     }
-    .explain p {
-      margin: 0.1rem 0;
+    .rec-tpu {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+    }
+    .rec-neutral {
+      background: #f9fafb;
+      color: #4b5563;
+      border-color: #e5e7eb;
     }
     @media (max-width: 900px) {
-      .grid {
+      .layout {
         grid-template-columns: minmax(0, 1fr);
       }
     }
@@ -179,6 +235,90 @@
       { key: "ops", label: "Operability / Integration" },
     ];
 
+    const SCENARIOS = {
+      edge: {
+        name: "Edge AI / Factory / Robot (GPU)",
+        values: { flex: 5, eco: 5, training: 3, cost: 3, latency: 5, ops: 5 },
+        type: "gpu"
+      },
+      mixed: {
+        name: "Mixed Workloads / Multi-modal (GPU)",
+        values: { flex: 5, eco: 5, training: 4, cost: 4, latency: 5, ops: 5 },
+        type: "gpu"
+      },
+      pytorch: {
+        name: "PyTorch-First R&D Team (GPU)",
+        values: { flex: 5, eco: 5, training: 3, cost: 4, latency: 5, ops: 4 },
+        type: "gpu"
+      },
+      hardware: {
+        name: "Custom Hardware Flexibility (GPU)",
+        values: { flex: 5, eco: 4, training: 3, cost: 4, latency: 5, ops: 4 },
+        type: "gpu"
+      },
+      llm50b: {
+        name: "50B+ LLM Training (TPU Pod)",
+        values: { flex: 2, eco: 3, training: 5, cost: 5, latency: 2, ops: 3 },
+        type: "tpu"
+      },
+      gcp_native: {
+        name: "All-in Google Cloud ML (TPU)",
+        values: { flex: 2, eco: 3, training: 5, cost: 5, latency: 2, ops: 3 },
+        type: "tpu"
+      },
+      jax_batch: {
+        name: "High-batch JAX Vision/NLP (TPU)",
+        values: { flex: 2, eco: 3, training: 5, cost: 4, latency: 2, ops: 3 },
+        type: "tpu"
+      },
+      tpu70: {
+        name: "TPU Pod Utilization >70% (TPU)",
+        values: { flex: 2, eco: 3, training: 5, cost: 5, latency: 2, ops: 3 },
+        type: "tpu"
+      }
+    };
+
+    function computeRecommendation(scenarioKey, roiScore) {
+      if (!scenarioKey || roiScore == null) {
+        return {
+          label: "Pick a scenario and adjust sliders to see a recommendation.",
+          className: "rec-neutral",
+        };
+      }
+      const scenario = SCENARIOS[scenarioKey];
+      if (!scenario) {
+        return {
+          label: "Tune your inputs to refine the recommendation.",
+          className: "rec-neutral",
+        };
+      }
+      const strong = roiScore >= 3.8;
+      const medium = roiScore >= 3.2;
+
+      if (scenario.type === "gpu") {
+        if (strong) {
+          return { label: "Recommended: GPU for this scenario.", className: "rec-gpu" };
+        } else if (medium) {
+          return { label: "Likely GPU, but validate with cost / utilization.", className: "rec-gpu" };
+        }
+        return { label: "GPU-leaning scenario, but ROI is weak — revisit assumptions.", className: "rec-neutral" };
+      }
+
+      if (scenario.type === "tpu") {
+        if (strong) {
+          return { label: "Recommended: TPU for this scenario.", className: "rec-tpu" };
+        } else if (medium) {
+          return { label: "Likely TPU, but validate Pod utilization and GCP lock-in.", className: "rec-tpu" };
+        }
+        return { label: "TPU-leaning scenario, but ROI is weak — revisit assumptions.", className: "rec-neutral" };
+      }
+
+      return {
+        label: "Tune your inputs to refine the recommendation.",
+        className: "rec-neutral",
+      };
+    }
+
     function RoiApp() {
       const [factors, setFactors] = useState({
         flex: 5,
@@ -191,9 +331,18 @@
       const [roi, setRoi] = useState(null);
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState(null);
+      const [scenarioKey, setScenarioKey] = useState("");
 
       const updateFactor = (key, value) => {
         setFactors(prev => ({ ...prev, [key]: Number(value) }));
+      };
+
+      const applyScenario = (key) => {
+        setScenarioKey(key);
+        const preset = SCENARIOS[key]?.values;
+        if (preset) {
+          setFactors(preset);
+        }
       };
 
       useEffect(() => {
@@ -218,52 +367,86 @@
         roiScore >= 3.0 ? "Moderate ROI" :
         "Weak ROI";
 
+      const rec = computeRecommendation(scenarioKey, roiScore);
+
       return (
         <>
-          <h1>GPU vs TPU – ROI Calculator</h1>
-          <p className="subtitle">
-            Move the sliders to describe your workload. The backend FastAPI API combines
-            your ratings using fixed ROI weights and returns a normalized score (0–5).
-          </p>
-
-          <div className="top-actions">
-            <div className="pill">
-              <span>⚙️</span>
-              Live from <code>/api/roi</code>
+          <div className="top-row">
+            <div>
+              <h1>GPU vs TPU – Scenario-based ROI</h1>
+              <p className="subtitle">
+                Choose a scenario (edge, mixed workloads, TPU Pods, GCP-native) or tune the sliders.
+                The backend FastAPI service computes a 0–5 ROI score, and the badge summarizes which
+                accelerator is recommended.
+              </p>
+              <div className={"rec-badge " + rec.className}>
+                <span>✅</span>
+                <span>{rec.label}</span>
+              </div>
             </div>
             <div>
-              <a className="link-btn" href="https://www.nvidia.com" target="_blank" rel="noreferrer">
-                GPU ecosystem
-              </a>
-              <a className="link-btn" href="https://cloud.google.com/tpu" target="_blank" rel="noreferrer">
-                TPU overview
+              <a className="link-btn" href="/docs">
+                <span>📄</span> Docs
               </a>
             </div>
           </div>
 
-          <div className="grid">
-            <div className="card">
-              <h2 style={{ marginTop: 0, fontSize: "1rem" }}>Inputs · Factors (0–5)</h2>
-              {FACTOR_META.map(meta => (
-                <div key={meta.key} className="slider-row">
-                  <label>
-                    <span>{meta.label}</span>
-                    <span>{factors[meta.key].toFixed(1)}</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="5"
-                    step="0.5"
-                    value={factors[meta.key]}
-                    onChange={e => updateFactor(meta.key, e.target.value)}
-                  />
+          <div className="layout">
+            <div>
+              <div className="card" style={{ marginBottom: "1rem" }}>
+                <h2>Scenario</h2>
+                <select
+                  className="scenario-select"
+                  value={scenarioKey}
+                  onChange={(e) => applyScenario(e.target.value)}
+                >
+                  <option value="">— Select a scenario —</option>
+                  <optgroup label="GPU-leaning">
+                    <option value="edge">Edge AI / Factory / Robot (GPU)</option>
+                    <option value="mixed">Mixed Workloads / Multi-modal (GPU)</option>
+                    <option value="pytorch">PyTorch-First R&D Team (GPU)</option>
+                    <option value="hardware">Custom Hardware Flexibility (GPU)</option>
+                  </optgroup>
+                  <optgroup label="TPU-leaning">
+                    <option value="llm50b">50B+ LLM Training (TPU Pod)</option>
+                    <option value="gcp_native">All-in Google Cloud ML (TPU)</option>
+                    <option value="jax_batch">High-batch JAX Vision/NLP (TPU)</option>
+                    <option value="tpu70">TPU Pod Utilization &gt;70% (TPU)</option>
+                  </optgroup>
+                </select>
+                <div className="scenario-tags">
+                  {scenarioKey && SCENARIOS[scenarioKey]?.type === "gpu" && (
+                    <span className="scenario-pill gpu-pill">GPU-centric scenario</span>
+                  )}
+                  {scenarioKey && SCENARIOS[scenarioKey]?.type === "tpu" && (
+                    <span className="scenario-pill tpu-pill">TPU-centric scenario</span>
+                  )}
                 </div>
-              ))}
+              </div>
+
+              <div className="card">
+                <h2>Inputs · Factors (0–5)</h2>
+                {FACTOR_META.map(meta => (
+                  <div key={meta.key} className="slider-row">
+                    <label>
+                      <span>{meta.label}</span>
+                      <span>{factors[meta.key].toFixed(1)}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="5"
+                      step="0.5"
+                      value={factors[meta.key]}
+                      onChange={e => updateFactor(meta.key, e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="card">
-              <h2 style={{ marginTop: 0, fontSize: "1rem" }}>Output · ROI Score</h2>
+              <h2>Output · ROI Score</h2>
               <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem" }}>
                 <div className="score-big">
                   {roiScore != null ? roiScore.toFixed(2) : "–"}
@@ -295,23 +478,14 @@
 
               <div className="api-debug">
                 <strong>API payload</strong><br />
-                {error && <div style={{ color: "#fecaca" }}>Error: {error}</div>}
+                {error && <div style={{ color: "#b91c1c" }}>Error: {error}</div>}
                 {!error && (
-                  <pre style={{ marginTop: "0.25rem" }}>
-{`GET /api/roi?flex=${factors.flex}&eco=${factors.eco}&training=${factors.training}&cost=${factors.cost}&latency=${factors.latency}&ops=${factors.ops}
+                  <pre style={{ marginTop: "0.25rem" }}>{`GET /api/roi?flex=${factors.flex}&eco=${factors.eco}&training=${factors.training}&cost=${factors.cost}&latency=${factors.latency}&ops=${factors.ops}
 
-${roi ? JSON.stringify(roi, null, 2) : "// waiting for response..."}`}
-                  </pre>
+${roi ? JSON.stringify(roi, null, 2) : "// waiting for response..."}`}</pre>
                 )}
               </div>
             </div>
-          </div>
-
-          <div className="card explain">
-            <h3>How to read this</h3>
-            <p><strong>GPU tends to win</strong> when you care about: edge deployments, mixed workloads, PyTorch-first ecosystem, and hardware choice.</p>
-            <p><strong>TPU tends to win</strong> when you run very large JAX / TensorFlow training jobs entirely on Google Cloud and can keep TPU Pods busy.</p>
-            <p>Use this tool as a quick, opinionated view — not as a replacement for a detailed TCO model.</p>
           </div>
         </>
       );
