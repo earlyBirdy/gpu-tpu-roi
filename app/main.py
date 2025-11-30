@@ -44,20 +44,17 @@ def load_weights():
 
 WEIGHTS = load_weights()
 
-# Serve static (React UI + CSS)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)
 def root():
-    """Serve the React SPA as the main page."""
     index_path = os.path.join(STATIC_DIR, "index.html")
     if not os.path.exists(index_path):
         return HTMLResponse("<h1>UI Not Found</h1>", status_code=404)
     return FileResponse(index_path, media_type="text/html")
 
 
-# Simple docs routes using Markdown
 BASE_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -113,29 +110,23 @@ def docs_justification():
     return render_page("justification")
 
 
-# ---- Interactive ROI Calculator API ----
 @app.get("/api/roi", response_class=JSONResponse)
 def roi_calc(
-    # mode
     mode: str = Query("simple", pattern="^(simple|quant)$"),
-
-    # simple mode inputs (0–5 sliders)
-    flex: float = Query(5, ge=0, le=5, description="Deployment flexibility (simple mode)"),
-    eco: float = Query(5, ge=0, le=5, description="Ecosystem / frameworks (simple mode)"),
-    training: float = Query(4, ge=0, le=5, description="Training throughput (simple mode)"),
-    cost: float = Query(4, ge=0, le=5, description="Cost efficiency (simple mode)"),
-    latency: float = Query(5, ge=0, le=5, description="Inference latency (simple mode)"),
-    ops: float = Query(5, ge=0, le=5, description="Operability / integration (simple mode)"),
-
-    # quantitative mode inputs
-    workload_fit: float = Query(3, ge=0, le=5, description="Workload fit (0–5)"),
-    deployment_fit: float = Query(3, ge=0, le=5, description="Deployment fit (0–5)"),
-    p99_latency_ms: float = Query(50, gt=0, description="Measured p99 latency (ms)"),
-    target_latency_ms: float = Query(50, gt=0, description="Target p99 latency (ms)"),
-    cost_per_unit: float = Query(0.000000002, gt=0, description="Cost per unit of work (e.g. $/token or $/inference)"),
-    best_cost_per_unit: float = Query(0.0000000015, gt=0, description="Best cost per unit to compare against"),
-    energy_per_unit: float = Query(0.000000002, gt=0, description="Energy per unit of work (kWh per token/inference)"),
-    best_energy_per_unit: float = Query(0.0000000015, gt=0, description="Best energy per unit to compare against"),
+    flex: float = Query(5, ge=0, le=5),
+    eco: float = Query(5, ge=0, le=5),
+    training: float = Query(4, ge=0, le=5),
+    cost: float = Query(4, ge=0, le=5),
+    latency: float = Query(5, ge=0, le=5),
+    ops: float = Query(5, ge=0, le=5),
+    workload_fit: float = Query(3, ge=0, le=5),
+    deployment_fit: float = Query(3, ge=0, le=5),
+    p99_latency_ms: float = Query(50, gt=0),
+    target_latency_ms: float = Query(50, gt=0),
+    cost_per_unit: float = Query(0.000000002, gt=0),
+    best_cost_per_unit: float = Query(0.0000000015, gt=0),
+    energy_per_unit: float = Query(0.000000002, gt=0),
+    best_energy_per_unit: float = Query(0.0000000015, gt=0),
 ):
     if mode == "simple":
         w = WEIGHTS["simple_weights"]
@@ -161,22 +152,17 @@ def roi_calc(
             "roi_score": round(score, 3),
         }
 
-    # ---- quantitative mode ----
     wq = WEIGHTS["quant_weights"]
 
-    # latency score: better if p99 <= target, bounded by 0–5
     latency_score = 5.0 * (target_latency_ms / max(p99_latency_ms, 1e-6))
     latency_score = max(0.0, min(5.0, latency_score))
 
-    # cost score: compare to best_cost_per_unit (lower is better)
     cost_score = 5.0 * (best_cost_per_unit / cost_per_unit)
     cost_score = max(0.0, min(5.0, cost_score))
 
-    # sustainability score: compare to best_energy_per_unit (lower is better)
     sustainability_score = 5.0 * (best_energy_per_unit / energy_per_unit)
     sustainability_score = max(0.0, min(5.0, sustainability_score))
 
-    # workload_fit and deployment_fit are already 0–5
     workload_score = workload_fit
     deployment_score = deployment_fit
 
@@ -209,4 +195,89 @@ def roi_calc(
         },
         "weights": wq,
         "roi_score": round(roi, 3),
+    }
+
+
+@app.get("/api/roi/compare", response_class=JSONResponse)
+def roi_compare(
+    target_latency_ms: float = Query(50, gt=0),
+    gpu_workload_fit: float = Query(3, ge=0, le=5),
+    gpu_deployment_fit: float = Query(3, ge=0, le=5),
+    gpu_p99_latency_ms: float = Query(50, gt=0),
+    gpu_cost_per_unit: float = Query(0.000000002, gt=0),
+    gpu_energy_per_unit: float = Query(0.000000002, gt=0),
+    tpu_workload_fit: float = Query(3, ge=0, le=5),
+    tpu_deployment_fit: float = Query(3, ge=0, le=5),
+    tpu_p99_latency_ms: float = Query(50, gt=0),
+    tpu_cost_per_unit: float = Query(0.000000002, gt=0),
+    tpu_energy_per_unit: float = Query(0.000000002, gt=0),
+):
+    wq = WEIGHTS["quant_weights"]
+
+    best_cost_per_unit = min(gpu_cost_per_unit, tpu_cost_per_unit)
+    best_energy_per_unit = min(gpu_energy_per_unit, tpu_energy_per_unit)
+
+    def compute_one(label, workload_fit, deployment_fit, p99_latency_ms, cost_per_unit, energy_per_unit):
+        latency_score = 5.0 * (target_latency_ms / max(p99_latency_ms, 1e-6))
+        latency_score = max(0.0, min(5.0, latency_score))
+
+        cost_score = 5.0 * (best_cost_per_unit / cost_per_unit)
+        cost_score = max(0.0, min(5.0, cost_score))
+
+        sustainability_score = 5.0 * (best_energy_per_unit / energy_per_unit)
+        sustainability_score = max(0.0, min(5.0, sustainability_score))
+
+        workload_score = workload_fit
+        deployment_score = deployment_fit
+
+        roi = (
+            workload_score * wq["workload"]
+            + latency_score * wq["latency"]
+            + cost_score * wq["cost"]
+            + sustainability_score * wq["sustainability"]
+            + deployment_score * wq["deployment"]
+        )
+
+        return {
+            "label": label,
+            "inputs": {
+                "workload_fit": workload_fit,
+                "deployment_fit": deployment_fit,
+                "p99_latency_ms": p99_latency_ms,
+                "cost_per_unit": cost_per_unit,
+                "energy_per_unit": energy_per_unit,
+            },
+            "derived_scores": {
+                "workload_score": round(workload_score, 3),
+                "latency_score": round(latency_score, 3),
+                "cost_score": round(cost_score, 3),
+                "sustainability_score": round(sustainability_score, 3),
+                "deployment_score": round(deployment_score, 3),
+            },
+            "roi_score": round(roi, 3),
+        }
+
+    gpu = compute_one("gpu", gpu_workload_fit, gpu_deployment_fit, gpu_p99_latency_ms, gpu_cost_per_unit, gpu_energy_per_unit)
+    tpu = compute_one("tpu", tpu_workload_fit, tpu_deployment_fit, tpu_p99_latency_ms, tpu_cost_per_unit, tpu_energy_per_unit)
+
+    margin = round(gpu["roi_score"] - tpu["roi_score"], 3)
+    if margin > 0.2:
+        winner = "gpu"
+    elif margin < -0.2:
+        winner = "tpu"
+    else:
+        winner = "tie"
+
+    return {
+        "mode": "quant_compare",
+        "weights": wq,
+        "target_latency_ms": target_latency_ms,
+        "baseline": {
+            "best_cost_per_unit": best_cost_per_unit,
+            "best_energy_per_unit": best_energy_per_unit,
+        },
+        "gpu": gpu,
+        "tpu": tpu,
+        "winner": winner,
+        "margin": margin,
     }
