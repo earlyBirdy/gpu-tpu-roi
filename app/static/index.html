@@ -162,7 +162,7 @@
       background: #f9fafb;
       padding: 0.6rem;
       border-radius: 0.5rem;
-      max-height: 180px;
+      max-height: 220px;
       overflow: auto;
       border: 1px solid #e5e7eb;
     }
@@ -197,6 +197,7 @@
       border-radius: 999px;
       font-size: 0.78rem;
       border: 1px solid transparent;
+      margin-top: 0.3rem;
     }
     .rec-gpu {
       background: #ecfdf3;
@@ -212,6 +213,39 @@
       background: #f9fafb;
       color: #4b5563;
       border-color: #e5e7eb;
+    }
+    .mode-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+    }
+    .mode-select {
+      padding: 0.2rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      font-size: 0.78rem;
+    }
+    .quant-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem 0.9rem;
+      margin-top: 0.7rem;
+    }
+    .quant-field {
+      font-size: 0.78rem;
+    }
+    .quant-field label {
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+    .quant-field input {
+      width: 100%;
+      padding: 0.25rem 0.4rem;
+      border-radius: 0.45rem;
+      border: 1px solid #d1d5db;
+      font-size: 0.8rem;
     }
     @media (max-width: 900px) {
       .layout {
@@ -281,7 +315,7 @@
     function computeRecommendation(scenarioKey, roiScore) {
       if (!scenarioKey || roiScore == null) {
         return {
-          label: "Pick a scenario and adjust sliders to see a recommendation.",
+          label: "Pick a scenario and adjust inputs to see a recommendation.",
           className: "rec-neutral",
         };
       }
@@ -328,6 +362,17 @@
         latency: 5,
         ops: 5,
       });
+      const [quant, setQuant] = useState({
+        workload_fit: 3,
+        deployment_fit: 3,
+        p99_latency_ms: 50,
+        target_latency_ms: 50,
+        cost_per_unit: 0.000000002,
+        best_cost_per_unit: 0.0000000015,
+        energy_per_unit: 0.000000002,
+        best_energy_per_unit: 0.0000000015,
+      });
+      const [mode, setMode] = useState("simple");
       const [roi, setRoi] = useState(null);
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState(null);
@@ -335,6 +380,11 @@
 
       const updateFactor = (key, value) => {
         setFactors(prev => ({ ...prev, [key]: Number(value) }));
+      };
+
+      const updateQuant = (key, value) => {
+        const num = Number(value);
+        setQuant(prev => ({ ...prev, [key]: isNaN(num) ? prev[key] : num }));
       };
 
       const applyScenario = (key) => {
@@ -346,7 +396,11 @@
       };
 
       useEffect(() => {
-        const params = new URLSearchParams(factors).toString();
+        const params = new URLSearchParams({
+          mode,
+          ...Object.fromEntries(Object.entries(factors).map(([k, v]) => [k, String(v)])),
+          ...Object.fromEntries(Object.entries(quant).map(([k, v]) => [k, String(v)])),
+        }).toString();
         setLoading(true);
         setError(null);
         fetch("/api/roi?" + params)
@@ -357,7 +411,7 @@
             setError("Failed to reach /api/roi");
           })
           .finally(() => setLoading(false));
-      }, [JSON.stringify(factors)]);
+      }, [JSON.stringify(factors), JSON.stringify(quant), mode]);
 
       const roiScore = roi ? roi.roi_score : null;
       const confidence =
@@ -375,19 +429,29 @@
             <div>
               <h1>GPU vs TPU – Scenario-based ROI</h1>
               <p className="subtitle">
-                Choose a scenario (edge, mixed workloads, TPU Pods, GCP-native) or tune the sliders.
-                The backend FastAPI service computes a 0–5 ROI score, and the badge summarizes which
-                accelerator is recommended.
+                Choose a scenario (edge, mixed workloads, TPU Pods, GCP-native), then either use the
+                simple sliders or switch to quantitative mode with measured latency, cost, and energy.
               </p>
               <div className={"rec-badge " + rec.className}>
                 <span>✅</span>
                 <span>{rec.label}</span>
               </div>
             </div>
-            <div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.4rem" }}>
               <a className="link-btn" href="/docs">
                 <span>📄</span> Docs
               </a>
+              <div className="mode-toggle">
+                <span>Mode:</span>
+                <select
+                  className="mode-select"
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value)}
+                >
+                  <option value="simple">Simple (0–5 sliders)</option>
+                  <option value="quant">Quantitative (measured)</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -411,7 +475,7 @@
                     <option value="llm50b">50B+ LLM Training (TPU Pod)</option>
                     <option value="gcp_native">All-in Google Cloud ML (TPU)</option>
                     <option value="jax_batch">High-batch JAX Vision/NLP (TPU)</option>
-                    <option value="tpu70">TPU Pod Utilization &gt;70% (TPU)</option>
+                    <option value="tpu70">TPU Pod Utilization >70% (TPU)</option>
                   </optgroup>
                 </select>
                 <div className="scenario-tags">
@@ -425,7 +489,7 @@
               </div>
 
               <div className="card">
-                <h2>Inputs · Factors (0–5)</h2>
+                <h2>Inputs · Simple Factors (0–5)</h2>
                 {FACTOR_META.map(meta => (
                   <div key={meta.key} className="slider-row">
                     <label>
@@ -442,11 +506,115 @@
                     />
                   </div>
                 ))}
+                <p style={{ fontSize: "0.75rem", opacity: 0.8, marginTop: "0.4rem" }}>
+                  Simple mode uses only these sliders. Quantitative mode combines measured metrics with
+                  workload/deployment fit.
+                </p>
               </div>
+
+              {mode === "quant" && (
+                <div className="card" style={{ marginTop: "1rem" }}>
+                  <h2>Inputs · Quantitative (measured)</h2>
+                  <div className="quant-grid">
+                    <div className="quant-field">
+                      <label>Workload fit (0–5)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        value={quant.workload_fit}
+                        onChange={e => updateQuant("workload_fit", e.target.value)}
+                      />
+                    </div>
+                    <div className="quant-field">
+                      <label>Deployment fit (0–5)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        value={quant.deployment_fit}
+                        onChange={e => updateQuant("deployment_fit", e.target.value)}
+                      />
+                    </div>
+                    <div className="quant-field">
+                      <label>p99 latency (ms)</label>
+                      <input
+                        type="number"
+                        min="0.001"
+                        step="0.1"
+                        value={quant.p99_latency_ms}
+                        onChange={e => updateQuant("p99_latency_ms", e.target.value)}
+                      />
+                    </div>
+                    <div className="quant-field">
+                      <label>Target p99 latency (ms)</label>
+                      <input
+                        type="number"
+                        min="0.001"
+                        step="0.1"
+                        value={quant.target_latency_ms}
+                        onChange={e => updateQuant("target_latency_ms", e.target.value)}
+                      />
+                    </div>
+                    <div className="quant-field">
+                      <label>Cost per unit (e.g. $/token)</label>
+                      <input
+                        type="number"
+                        min="0.000000000000001"
+                        step="0.000000000000001"
+                        value={quant.cost_per_unit}
+                        onChange={e => updateQuant("cost_per_unit", e.target.value)}
+                      />
+                    </div>
+                    <div className="quant-field">
+                      <label>Best cost per unit</label>
+                      <input
+                        type="number"
+                        min="0.000000000000001"
+                        step="0.000000000000001"
+                        value={quant.best_cost_per_unit}
+                        onChange={e => updateQuant("best_cost_per_unit", e.target.value)}
+                      />
+                    </div>
+                    <div className="quant-field">
+                      <label>Energy per unit (kWh)</label>
+                      <input
+                        type="number"
+                        min="0.000000000000001"
+                        step="0.000000000000001"
+                        value={quant.energy_per_unit}
+                        onChange={e => updateQuant("energy_per_unit", e.target.value)}
+                      />
+                    </div>
+                    <div className="quant-field">
+                      <label>Best energy per unit</label>
+                      <input
+                        type="number"
+                        min="0.000000000000001"
+                        step="0.000000000000001"
+                        value={quant.best_energy_per_unit}
+                        onChange={e => updateQuant("best_energy_per_unit", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <p style={{ fontSize: "0.75rem", opacity: 0.8, marginTop: "0.4rem" }}>
+                    Use these fields when you have real measurements from benchmarks. The backend computes
+                    normalized scores for latency, cost, and sustainability and combines them with workload/
+                    deployment fit into a 0–5 ROI score.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="card">
-              <h2>Output · ROI Score</h2>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <h2>Output · ROI Score</h2>
+                <span style={{ fontSize: "0.75rem", opacity: 0.75 }}>
+                  {mode === "simple" ? "Using simple weights" : "Using quantitative weights"}
+                </span>
+              </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem" }}>
                 <div className="score-big">
                   {roiScore != null ? roiScore.toFixed(2) : "–"}
@@ -480,7 +648,10 @@
                 <strong>API payload</strong><br />
                 {error && <div style={{ color: "#b91c1c" }}>Error: {error}</div>}
                 {!error && (
-                  <pre style={{ marginTop: "0.25rem" }}>{`GET /api/roi?flex=${factors.flex}&eco=${factors.eco}&training=${factors.training}&cost=${factors.cost}&latency=${factors.latency}&ops=${factors.ops}
+                  <pre style={{ marginTop: "0.25rem" }}>{`GET /api/roi?mode=${mode}&flex=${factors.flex}&eco=${factors.eco}&training=${factors.training}&cost=${factors.cost}&latency=${factors.latency}&ops=${factors.ops}
+&workload_fit=${quant.workload_fit}&deployment_fit=${quant.deployment_fit}&p99_latency_ms=${quant.p99_latency_ms}&target_latency_ms=${quant.target_latency_ms}
+&cost_per_unit=${quant.cost_per_unit}&best_cost_per_unit=${quant.best_cost_per_unit}
+&energy_per_unit=${quant.energy_per_unit}&best_energy_per_unit=${quant.best_energy_per_unit}
 
 ${roi ? JSON.stringify(roi, null, 2) : "// waiting for response..."}`}</pre>
                 )}

@@ -1,0 +1,17 @@
+{
+  "simple_weights": {
+    "flex": 0.2,
+    "eco": 0.2,
+    "training": 0.15,
+    "cost": 0.15,
+    "latency": 0.15,
+    "ops": 0.15
+  },
+  "quant_weights": {
+    "workload": 0.25,
+    "latency": 0.2,
+    "cost": 0.2,
+    "sustainability": 0.15,
+    "deployment": 0.2
+  }
+}

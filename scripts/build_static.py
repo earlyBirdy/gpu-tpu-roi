@@ -25,8 +25,10 @@ TEMPLATE = """<!DOCTYPE html>
 pages = {
     "index.md": "index.html",
     "roi_tables.md": "roi.html",
+    "quantitative_roi.md": "quantitative_roi.html",
     "decision_tree.md": "decision.html",
     "business_summary.md": "business.html",
+    "justification.md": "justification.html",
 }
 
 for md_name, html_name in pages.items():
